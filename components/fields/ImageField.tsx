@@ -31,6 +31,21 @@ const extraAttributes = {
   required: false,
 };
 
+const uploadImage = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch("/api/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upload image");
+  }
+};
+
+
 export const ImageFieldFormElement = {
   type,
   construct: (id: string) => ({
@@ -80,31 +95,45 @@ function ImageFormComponent({
   submitValue,
   isInvalid,
   defaultValue,
-  }: {
+}: {
   elementInstance: FormElementInstance;
   submitValue?: SubmitFunction;
   isInvalid?: boolean;
   defaultValue?: string;
-  }) {
+}) {
   const element = elementInstance as CustomInstance;
 
   const [value, setValue] = useState<string | null>(null);
-
-
   const [error, setError] = useState(false);
 
   useEffect(() => {
-      setError(isInvalid === true);
+    setError(isInvalid === true);
   }, [isInvalid]);
 
   const { label, required, helperText } = element.extraAttributes;
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const fileName = e.target.files[0].name; // Ambil nama file pertama
-      setValue(fileName); // Simpan sebagai string
-    } else {
-      setValue(null); // Atur ke null jika tidak ada file
+      const file = e.target.files[0];
+      setValue(URL.createObjectURL(file)); // URL untuk preview
+  
+      // Upload file ke server
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      try {
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+  
+        if (!response.ok) {
+          throw new Error("Gagal mengunggah file");
+        }
+        console.log("File berhasil diunggah");
+      } catch (error) {
+        console.error("Error:", error);
+      }
     }
   };
   
@@ -121,18 +150,33 @@ function ImageFormComponent({
         onChange={handleFileChange}
         onBlur={() => {
           if (!submitValue) return;
-          const stringValue = value ? value : "false";
-          const valid = ImageFieldFormElement.validate(element, stringValue);
+          const valid = ImageFieldFormElement.validate(element, value || "");
           setError(!valid);
           if (!valid) return;
-          submitValue(element.id, value || ""); // Kirimkan string
+          submitValue(element.id, value || "");
         }}
-        
       />
-      {helperText && <p className={cn("text-muted-foreground text-[0.8rem]", error && "text-red-500")}>{helperText}</p>}
+      {value && (
+        <img
+          src={value}
+          alt="Preview"
+          className="w-full h-auto rounded-md border mt-2"
+        />
+      )}
+      {helperText && (
+        <p
+          className={cn(
+            "text-muted-foreground text-[0.8rem]",
+            error && "text-red-500"
+          )}
+        >
+          {helperText}
+        </p>
+      )}
     </div>
   );
 }
+
 
 function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
   const element = elementInstance;
