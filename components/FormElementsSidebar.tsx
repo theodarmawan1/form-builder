@@ -23,6 +23,7 @@ function FormElementsSidebar() {
             <SidebarBtnElement formElement={FormElements.DateField} />
             <SidebarBtnElement formElement={FormElements.SelectField} />
             <SidebarBtnElement formElement={FormElements.CheckboxField} />
+            <SidebarBtnElement formElement={FormElements.ImageField} />
         </div>
         </div>
     );
