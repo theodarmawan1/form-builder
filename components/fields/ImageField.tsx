@@ -84,7 +84,6 @@ function ImageDesignerComponent({ elementInstance }: { elementInstance: any }) {
         {label}
         {required && "*"}
       </Label>
-      <input type="file" disabled className="cursor-not-allowed" />
       {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
     </div>
   );
@@ -207,6 +206,13 @@ function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
     });
   }
 
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      console.log("Selected file:", file);
+    }
+  };
+
   return (
     <Form {...form}>
       <form
@@ -255,7 +261,21 @@ function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
             </FormItem>
           )}
         />
+        {/* Input File */}
+        <div>
+          <FormLabel>Upload Image</FormLabel>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="cursor-pointer"
+          />
+          <FormDescription>
+            Upload an image file for this element.
+          </FormDescription>
+        </div>
       </form>
     </Form>
   );
 }
+
