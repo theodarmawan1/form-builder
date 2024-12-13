@@ -76,7 +76,7 @@ type CustomInstance = FormElementInstance & {
 
 function ImageDesignerComponent({ elementInstance }: { elementInstance: any }) {
   const element = elementInstance;
-  const { label, required, helperText } = element.extraAttributes;
+  const { label, required, helperText, imageUrl } = element.extraAttributes;
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -84,6 +84,15 @@ function ImageDesignerComponent({ elementInstance }: { elementInstance: any }) {
         {label}
         {required && "*"}
       </Label>
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt="Uploaded preview"
+          className="w-full h-auto rounded-md border"
+        />
+      ) : (
+        <p className="text-muted-foreground">No image uploaded</p>
+      )}
       {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
     </div>
   );
@@ -179,7 +188,7 @@ function ImageFormComponent({
 
 function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
   const element = elementInstance;
-  const { updateElement } = useDesigner();
+  const { updateElement } = useDesigner(); // State global
   const form = useForm<FieldValues>({
     resolver: zodResolver(propertiesSchema),
     mode: "onBlur",
@@ -199,6 +208,7 @@ function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
     updateElement(element.id, {
       ...element,
       extraAttributes: {
+        ...element.extraAttributes,
         label,
         helperText,
         required,
@@ -209,7 +219,16 @@ function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      console.log("Selected file:", file);
+      const imageUrl = URL.createObjectURL(file);
+
+      // Simpan URL gambar ke state global
+      updateElement(element.id, {
+        ...element,
+        extraAttributes: {
+          ...element.extraAttributes,
+          imageUrl, // Tambahkan URL ke state elementInstance
+        },
+      });
     }
   };
 
@@ -278,4 +297,3 @@ function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
     </Form>
   );
 }
-
