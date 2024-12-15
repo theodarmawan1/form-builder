@@ -1,7 +1,7 @@
 "use client";
 
-import { MdTextFields } from "react-icons/md";
-import { ElementsType, FormElement, FormElementInstance, SubmitFunction } from "../FormElements";
+import { MdTextFields, MdImage } from "react-icons/md";
+import { ElementsType, FormElementInstance, SubmitFunction } from "../FormElements";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { z } from "zod";
@@ -9,44 +9,31 @@ import { useForm, FieldValues } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState, ChangeEvent } from "react";
 import useDesigner from "../hooks/useDesigner";
-
+import { Separator } from "../ui/separator";
+import { Button } from "../ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Switch } from "../ui/switch";
 import { cn } from "@/lib/utils";
 
-import { MdImage } from "react-icons/md"; // Import ikon gambar
-
-// Schema untuk validasi properti elemen
+// Schema untuk validasi properti banner
 const propertiesSchema = z.object({
-  label: z.string().nonempty("Label is required"),
-  helperText: z.string().optional(),
-  required: z.boolean().optional(),
+  bannerLabel: z.string().optional(),
+  bannerImageUrl: z.string().optional(),
+  fullWidth: z.boolean().default(false),
 });
 
-const type: ElementsType = "ImageField";
 
+
+// Default atribut untuk banner
 const extraAttributes = {
-  label: "Upload Image",
-  helperText: "Upload an image file",
-  required: false,
+  bannerLabel: "Your Banner",
+  bannerImageUrl: "",
+  fullWidth: true,
 };
 
-const uploadImage = async (file: File) => {
-  const formData = new FormData();
-  formData.append("file", file);
+const type: ElementsType = "BannerField";
 
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to upload image");
-  }
-};
-
-
-export const ImageFieldFormElement = {
+export const BannerFieldFormElement = {
   type,
   construct: (id: string) => ({
     id,
@@ -55,244 +42,246 @@ export const ImageFieldFormElement = {
   }),
   designerBtnElement: {
     icon: MdImage,
-    label: "Image Field",
+    label: "Banner Field",
   },
-  designerComponent: ImageDesignerComponent,
-  formComponent: ImageFormComponent,
+  designerComponent: BannerDesignerComponent,
+  formComponent: BannerFormComponent,
   propertiesComponent: PropertiesComponent,
 
-  validate: (formElement: FormElementInstance, currentValue: string ): boolean => {
-    const element = formElement as CustomInstance;
-    if (element.extraAttributes.required) {
-      return currentValue.length > 0 && currentValue.trim() !== "";
+  // Tambahkan properti validate
+  validate: (elementInstance: FormElementInstance) => {
+    const element = elementInstance as CustomInstance;
+    const { bannerImageUrl, bannerLabel } = element.extraAttributes;
+
+    // Validasi dengan logika sederhana
+    if (!bannerImageUrl || (bannerLabel && bannerLabel.length > 100)) {
+      return false; // Tidak valid
     }
-    return true;
+    return true; // Valid
   },
 };
+
 
 type CustomInstance = FormElementInstance & {
   extraAttributes: typeof extraAttributes;
 };
 
-function ImageDesignerComponent({ elementInstance }: { elementInstance: any }) {
-  const element = elementInstance;
-  const { label, required, helperText, imageUrl } = element.extraAttributes;
+// **DesignerComponent**: Menampilkan banner dalam desain form
+function BannerDesignerComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
+  const element = elementInstance as CustomInstance;
+  const { bannerLabel, bannerImageUrl, fullWidth } = element.extraAttributes;
+
+  // Debugging
+  console.log("Rendering BannerDesignerComponent with:", { bannerLabel, bannerImageUrl, fullWidth });
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <Label>
-        {label}
-        {required && "*"}
-      </Label>
-      {imageUrl ? (
+    <div
+      className={`flex flex-col items-center gap-2 w-full ${
+        fullWidth ? "w-full" : "max-w-[600px]"
+      } bg-gray-100 p-4 rounded-lg`}
+    >
+      {bannerImageUrl ? (
         <img
-          src={imageUrl}
-          alt="Uploaded preview"
-          className="w-full h-auto rounded-md border"
+          src={bannerImageUrl}
+          alt="Banner"
+          className="rounded-md"
+          style={{
+            width: fullWidth ? "100%" : "auto",
+            height: "auto",
+            objectFit: "cover",
+          }}
         />
       ) : (
-        <p className="text-muted-foreground">No image uploaded</p>
+        <p className="text-muted-foreground">No banner image uploaded</p>
       )}
-      {helperText && <p className="text-muted-foreground text-[0.8rem]">{helperText}</p>}
+      {bannerLabel && <h2 className="text-lg font-semibold">{bannerLabel}</h2>}
     </div>
   );
 }
 
-function ImageFormComponent({
-  elementInstance,
-  submitValue,
-  isInvalid,
-  defaultValue,
-}: {
-  elementInstance: FormElementInstance;
-  submitValue?: SubmitFunction;
-  isInvalid?: boolean;
-  defaultValue?: string;
-}) {
+
+
+// **FormComponent**: Menampilkan banner di dalam formulir
+// **FormComponent**: Menampilkan banner di dalam formulir
+function BannerFormComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
   const element = elementInstance as CustomInstance;
+  const { bannerImageUrl, bannerLabel } = element.extraAttributes;
 
-  const [value, setValue] = useState<string | null>(null);
-  const [error, setError] = useState(false);
-
+  // Pastikan gambar tetap ada meskipun form berganti halaman/tombol
   useEffect(() => {
-    setError(isInvalid === true);
-  }, [isInvalid]);
-
-  const { label, required, helperText } = element.extraAttributes;
-
-  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      setValue(URL.createObjectURL(file)); // URL untuk preview
-  
-      // Upload file ke server
-      const formData = new FormData();
-      formData.append("file", file);
-  
-      try {
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-  
-        if (!response.ok) {
-          throw new Error("Gagal mengunggah file");
-        }
-        console.log("File berhasil diunggah");
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    }
-  };
-  
+    // Jika gambar URL berubah, lakukan sesuatu jika perlu
+    console.log("Banner image URL changed:", bannerImageUrl);
+  }, [bannerImageUrl]);
 
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <Label className={cn(error && "text-red-500")}>
-        {label}
-        {required && "*"}
-      </Label>
-      <input
-        type="file"
-        className={cn(error && "border-red-500")}
-        onChange={handleFileChange}
-        onBlur={() => {
-          if (!submitValue) return;
-          const valid = ImageFieldFormElement.validate(element, value || "");
-          setError(!valid);
-          if (!valid) return;
-          submitValue(element.id, value || "");
-        }}
-      />
-      {value && (
+    <div className="flex flex-col items-center gap-2 w-full">
+      {bannerImageUrl ? (
         <img
-          src={value}
-          alt="Preview"
-          className="w-full h-auto rounded-md border mt-2"
+          src={bannerImageUrl}
+          alt="Banner"
+          className="rounded-md"
+          style={{
+            width: "100%",
+            objectFit: "cover",
+          }}
         />
+      ) : (
+        <p className="text-muted-foreground">No banner image uploaded</p>
       )}
-      {helperText && (
-        <p
-          className={cn(
-            "text-muted-foreground text-[0.8rem]",
-            error && "text-red-500"
-          )}
-        >
-          {helperText}
-        </p>
-      )}
+      {bannerLabel && <h2 className="text-lg font-semibold">{bannerLabel}</h2>}
     </div>
   );
 }
 
+const saveBannerToDatabase = async (file: File, bannerLabel: string) => {
+  console.log("Preparing to save banner:", { file, bannerLabel });
 
-function PropertiesComponent({ elementInstance }: { elementInstance: any }) {
-  const element = elementInstance;
+  if (!file) {
+    console.error("File is required");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append("file", file);  // Menambahkan file ke FormData
+    formData.append("bannerLabel", bannerLabel);  // Menambahkan label banner jika diperlukan
+
+    const response = await fetch("/api/banner", {
+      method: "POST",
+      body: formData,  // Mengirim formData, bukan JSON
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Failed to save banner:", error);
+    } else {
+      console.log("Banner saved successfully");
+    }
+  } catch (error) {
+    console.error("Error saving banner:", error);
+  }
+};
+
+
+
+
+// **PropertiesComponent**: Mengatur properti banner
+// **PropertiesComponent**: Mengatur properti banner
+function PropertiesComponent({ elementInstance }: { elementInstance: FormElementInstance }) {
+  const element = elementInstance as CustomInstance;
   const { updateElement } = useDesigner(); // State global
-  const form = useForm<FieldValues>({
+  const form = useForm({
     resolver: zodResolver(propertiesSchema),
     mode: "onBlur",
     defaultValues: {
-      label: element.extraAttributes.label,
-      helperText: element.extraAttributes.helperText,
-      required: element.extraAttributes.required,
+      bannerLabel: element.extraAttributes.bannerLabel,
+      bannerImageUrl: element.extraAttributes.bannerImageUrl,
+      fullWidth: element.extraAttributes.fullWidth,
     },
   });
 
   useEffect(() => {
+    // Reset form dengan data terbaru dari state global
     form.reset(element.extraAttributes);
   }, [element, form]);
+  
 
-  function applyChanges(values: FieldValues) {
-    const { label, helperText, required } = values;
+  const applyChanges = (values: z.infer<typeof propertiesSchema>) => {
     updateElement(element.id, {
       ...element,
       extraAttributes: {
         ...element.extraAttributes,
-        label,
-        helperText,
-        required,
+        ...values, // Terapkan semua nilai form ke elemen
       },
     });
-  }
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    // Debugging
+    console.log("Element updated with new attributes:", values);
+  };
+
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const imageUrl = URL.createObjectURL(file);
-
-      // Simpan URL gambar ke state global
-      updateElement(element.id, {
-        ...element,
-        extraAttributes: {
-          ...element.extraAttributes,
-          imageUrl, // Tambahkan URL ke state elementInstance
-        },
-      });
+      const formData = new FormData();
+      formData.append("file", file);
+  
+      try {
+        const response = await fetch("/api/banner", {
+          method: "POST",
+          body: formData,
+        });
+  
+        if (response.ok) {
+          const data = await response.json();
+          const imageUrl = data.imageUrl;
+          updateElement(element.id, {
+            ...element,
+            extraAttributes: {
+              ...element.extraAttributes,
+              bannerImageUrl: imageUrl,
+            },
+          });
+          // await saveBannerToDatabase(imageUrl, element.extraAttributes.bannerLabel || "Default Label");
+        } else {
+          const errorText = await response.text();
+          console.error("Failed to upload image:", errorText);
+        }
+      } catch (error) {
+        console.error("Unexpected error during upload:", error);
+      }
     }
   };
+  
+  
+  
 
   return (
     <Form {...form}>
       <form
-        onBlur={form.handleSubmit(applyChanges)}
-        onSubmit={(e) => {
-          e.preventDefault();
-        }}
+        // onBlur={form.handleSubmit(applyChanges)}
+        onSubmit={(e) => e.preventDefault()}
         className="space-y-3"
       >
         <FormField
           control={form.control}
-          name="label"
+          name="bannerLabel"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Label</FormLabel>
+              <FormLabel>Banner Label</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") e.currentTarget.blur();
-                  }}
-                />
+                <Input {...field} />
               </FormControl>
-              <FormDescription>
-                The label of the field. <br /> It will be displayed above the field.
-              </FormDescription>
+              <FormDescription>Text displayed over the banner.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="required"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-              <div className="space-y-0.5">
-                <FormLabel>Required</FormLabel>
-                <FormDescription>
-                  Whether this field is required or not.
-                </FormDescription>
-              </div>
-              <FormControl>
-                <Switch checked={field.value} onCheckedChange={field.onChange} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {/* Input File */}
         <div>
-          <FormLabel>Upload Image</FormLabel>
+          <FormLabel>Upload Banner Image</FormLabel>
           <Input
             type="file"
             accept="image/*"
             onChange={handleFileChange}
             className="cursor-pointer"
           />
-          <FormDescription>
-            Upload an image file for this element.
-          </FormDescription>
+          <FormDescription>Upload an image to display as the banner.</FormDescription>
         </div>
+        <FormField
+          control={form.control}
+          name="fullWidth"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Width</FormLabel>
+              <FormDescription>
+                If enabled, the banner will stretch to the full width of the form.
+              </FormDescription>
+              <Separator />
+              <FormControl>
+                <Switch checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+            </FormItem>
+          )}
+        />
       </form>
     </Form>
   );

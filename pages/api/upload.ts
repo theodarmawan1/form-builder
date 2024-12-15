@@ -1,35 +1,41 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import fs from "fs";
-import path from "path";
 
-export const config = {
-  api: {
-    bodyParser: false, // Nonaktifkan body parser untuk menangani file
-  },
-};
+import { PrismaClient } from "@prisma/client";
+import type { NextApiRequest, NextApiResponse } from "next";
+
+const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
+  if (req.method === "GET") {
+    try {
+      const banners = await prisma.banner.findMany(); // Pastikan Prisma Client sudah diperbarui
+      res.status(200).json(banners);
+    } catch (error) {
+      console.error("Error fetching banners:", error);
+      res.status(500).json({ error: "Failed to fetch banners" });
+    }
+  } else if (req.method === "POST") {
+    const { bannerUrl, bannerLabel } = req.body;
+
+    // Validasi data input
+    if (!bannerUrl) {
+      res.status(400).json({ error: "bannerUrl is required" });
+      return;
+    }
+
+    try {
+      const newBanner = await prisma.banner.create({
+        data: {
+          bannerUrl,
+          bannerLabel: bannerLabel || null, // Banner label bersifat opsional
+        },
+      });
+      res.status(201).json(newBanner);
+    } catch (error) {
+      console.error("Error creating banner:", error);
+      res.status(500).json({ error: "Failed to create banner" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET", "POST"]);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
   }
-
-  const filePath = path.join(process.cwd(), "public/uploads");
-  if (!fs.existsSync(filePath)) {
-    fs.mkdirSync(filePath, { recursive: true });
-  }
-
-  const busboy = require("busboy"); // Pastikan package ini terinstall
-  const bb = busboy({ headers: req.headers });
-
-  bb.on("file", (fieldname : any, file : any, info : any) => {
-    const { filename } = info;
-    const saveTo = path.join(filePath, filename);
-    file.pipe(fs.createWriteStream(saveTo));
-  });
-
-  bb.on("close", () => {
-    res.status(200).json({ message: "File uploaded successfully" });
-  });
-
-  req.pipe(bb);
 }

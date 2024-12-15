@@ -9,7 +9,7 @@ import { SubTitleFieldFormElement } from "./fields/SubTitleField";
 import { TextAreaFormElement } from "./fields/TextAreaField";
 import { TextFieldFormElement } from "./fields/TextField";
 import { TitleFieldFormElement } from "./fields/TitleField";
-import { ImageFieldFormElement } from "./fields/ImageField";
+import { BannerFieldFormElement } from "./fields/ImageField";
 
 export type ElementsType =
     | "TextField"
@@ -23,7 +23,7 @@ export type ElementsType =
     | "DateField"
     | "SelectField"
     | "CheckboxField"
-    | "ImageField";
+    | "BannerField";
 
 export type SubmitFunction = (key: string, value: string) => void;
 
@@ -74,5 +74,5 @@ export const FormElements: FormElementsType = {
     DateField: DateFieldFormElement,
     SelectField: SelectFieldFormElement,
     CheckboxField: CheckboxFieldFormElement,
-    ImageField: ImageFieldFormElement,
+    BannerField: BannerFieldFormElement,
 };
