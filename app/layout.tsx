@@ -12,6 +12,7 @@ import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import DesignerContextProvider from '@/components/context/DesignerContext'
 import NextTopLoader from "nextjs-toploader";
+import '@uploadthing/react/styles.css';
 
 const inter = Inter({ subsets: ['latin'] })
 

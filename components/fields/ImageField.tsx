@@ -14,6 +14,9 @@ import { Button } from "../ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Switch } from "../ui/switch";
 import { cn } from "@/lib/utils";
+import axios from "axios";
+import { da } from "date-fns/locale";
+import { UploadButton } from "@/src/utils/uploadthing";
 
 // Schema untuk validasi properti banner
 const propertiesSchema = z.object({
@@ -21,8 +24,6 @@ const propertiesSchema = z.object({
   bannerImageUrl: z.string().optional(),
   fullWidth: z.boolean().default(false),
 });
-
-
 
 // Default atribut untuk banner
 const extraAttributes = {
@@ -78,19 +79,19 @@ function BannerDesignerComponent({ elementInstance }: { elementInstance: FormEle
     <div
       className={`flex flex-col items-center gap-2 w-full ${
         fullWidth ? "w-full" : "max-w-[600px]"
-      } bg-gray-100 p-4 rounded-lg`}
+      } p-4 rounded-lg`}
     >
       {bannerImageUrl ? (
         <img
-          src={bannerImageUrl}
-          alt="Banner"
-          className="rounded-md"
-          style={{
-            width: fullWidth ? "100%" : "auto",
-            height: "auto",
-            objectFit: "cover",
-          }}
-        />
+        src={bannerImageUrl}
+        alt="Banner"
+        className="rounded-md"
+        style={{
+          width: "14%", // Ganti width sesuai kebutuhan
+          height: "23%", // Ganti height sesuai kebutuhan
+          objectFit: "cover",
+        }}
+      />
       ) : (
         <p className="text-muted-foreground">No banner image uploaded</p>
       )}
@@ -121,7 +122,8 @@ function BannerFormComponent({ elementInstance }: { elementInstance: FormElement
           alt="Banner"
           className="rounded-md"
           style={{
-            width: "100%",
+            width: "24%", // Ganti width sesuai kebutuhan
+            height: "100%", // Ganti height sesuai kebutuhan
             objectFit: "cover",
           }}
         />
@@ -146,7 +148,7 @@ const saveBannerToDatabase = async (file: File, bannerLabel: string) => {
     formData.append("file", file);  // Menambahkan file ke FormData
     formData.append("bannerLabel", bannerLabel);  // Menambahkan label banner jika diperlukan
 
-    const response = await fetch("/api/banner", {
+    const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,  // Mengirim formData, bukan JSON
     });
@@ -185,6 +187,7 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
     form.reset(element.extraAttributes);
   }, [element, form]);
   
+  const [imageUrl, setImageUrl] = useState<string>('');
 
   const applyChanges = (values: z.infer<typeof propertiesSchema>) => {
     updateElement(element.id, {
@@ -206,7 +209,7 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
       formData.append("file", file);
   
       try {
-        const response = await fetch("/api/banner", {
+        const response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
@@ -221,6 +224,7 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
               bannerImageUrl: imageUrl,
             },
           });
+          console.log("Uploaded image URL:", data.imageUrl);
           // await saveBannerToDatabase(imageUrl, element.extraAttributes.bannerLabel || "Default Label");
         } else {
           const errorText = await response.text();
@@ -258,13 +262,26 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
         />
         <div>
           <FormLabel>Upload Banner</FormLabel>
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="cursor-pointer"
-          />
           <FormDescription>Upload an image to display as the banner.</FormDescription>
+          <Separator />
+          <UploadButton
+            endpoint="imageUploader"
+            onClientUploadComplete={(res) => {
+              // Do something with the response
+              alert("Upload Completed");
+              updateElement(element.id, {
+                ...element,
+                extraAttributes: {
+                  ...element.extraAttributes,
+                  bannerImageUrl: res[0].url, // Memperbarui bannerImageUrl dengan URL yang baru
+                },
+              });
+            }}
+            onUploadError={(error: Error) => {
+              // Do something with the error.
+              alert(`ERROR! ${error.message}`);
+            }}
+          />
         </div>
         <FormField
           control={form.control}
