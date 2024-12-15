@@ -257,7 +257,7 @@ function PropertiesComponent({ elementInstance }: { elementInstance: FormElement
           )}
         />
         <div>
-          <FormLabel>Upload Banner Image</FormLabel>
+          <FormLabel>Upload Banner</FormLabel>
           <Input
             type="file"
             accept="image/*"
